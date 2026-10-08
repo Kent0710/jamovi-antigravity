@@ -102,6 +102,8 @@ jamovi-antigravity/
 |-- LICENSE                 # MIT License
 |-- install.sh              # One-click installer for macOS and Linux
 |-- install.ps1             # One-click installer for Windows
+|-- uninstall.sh            # One-command teardown for macOS and Linux
+|-- uninstall.ps1           # One-command teardown for Windows
 |-- agent/
 |   `-- jamovi-analyst.md   # Antigravity agent definition
 |-- mcp/
@@ -130,6 +132,46 @@ Run the test suite to verify the statistical engine and file generation:
 
 ```bash
 python3 tests/test_jamovi_engine.py
+```
+
+---
+
+## Uninstallation (One-Command Teardown)
+
+To completely remove every file, MCP tool, agent definition, and configuration created by this setup:
+
+### macOS and Linux
+
+Run the following command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Kent0710/jamovi-antigravity/main/uninstall.sh | bash
+```
+
+Or from within a cloned repository:
+
+```bash
+./uninstall.sh
+```
+
+To also delete the cloned repository directory, append `--purge-repo`:
+
+```bash
+./uninstall.sh --purge-repo
+```
+
+### Windows (PowerShell)
+
+Run the following command in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/Kent0710/jamovi-antigravity/main/uninstall.ps1 | iex
+```
+
+Or from within a cloned repository:
+
+```powershell
+.\uninstall.ps1 -PurgeRepo
 ```
 
 ---
