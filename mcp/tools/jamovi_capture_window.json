@@ -1,0 +1,14 @@
+{
+  "name": "jamovi_capture_window",
+  "description": "Capture a screenshot of the active jamovi Desktop window as visual verification for academic submissions.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "output_image_path": {
+        "type": "string",
+        "description": "Destination file path for the screenshot image (.png)."
+      }
+    },
+    "required": ["output_image_path"]
+  }
+}

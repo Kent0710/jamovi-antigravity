@@ -1,0 +1,41 @@
+{
+  "name": "jamovi_run_analysis",
+  "description": "Execute statistical analyses (correlation, t-test, ANOVA, linear regression, descriptives, contingency) using jamovi's official statistical engine. Returns official ASCII tables, APA 7th Edition writeup, and can automatically generate a native .omv project file and standalone HTML report.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "test_type": {
+        "type": "string",
+        "enum": ["correlation", "ttest_is", "ttest_ps", "anova", "regression", "descriptives", "contingency"],
+        "description": "Type of statistical analysis to perform."
+      },
+      "dataset_path": {
+        "type": "string",
+        "description": "Path to the dataset (.csv, .xlsx, or .omv)."
+      },
+      "variables": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Variables to analyze (e.g. ['study_hours', 'exam_score'])."
+      },
+      "group_var": {
+        "type": "string",
+        "description": "Grouping/independent variable for t-test or ANOVA."
+      },
+      "output_omv_path": {
+        "type": "string",
+        "description": "Optional file path to save the native .omv jamovi project."
+      },
+      "output_html_path": {
+        "type": "string",
+        "description": "Optional file path to save a standalone HTML report."
+      },
+      "open_in_jamovi": {
+        "type": "boolean",
+        "default": false,
+        "description": "Whether to immediately launch the desktop app with the generated project."
+      }
+    },
+    "required": ["test_type", "dataset_path", "variables"]
+  }
+}

@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.DS_Store
+.venv/
+env/
+venv/
+*.tmp
+examples/*.omv
+examples/*.html
+Rplots.pdf

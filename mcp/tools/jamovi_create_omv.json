@@ -1,0 +1,22 @@
+{
+  "name": "jamovi_create_omv",
+  "description": "Convert a CSV or Excel dataset into a native jamovi (.omv) project file with custom column metadata (measurement levels, factor labels).",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "csv_path": {
+        "type": "string",
+        "description": "Path to input CSV file."
+      },
+      "output_omv_path": {
+        "type": "string",
+        "description": "Destination path for the generated .omv file."
+      },
+      "column_types": {
+        "type": "object",
+        "description": "Optional mapping of column name to measurement scale: 'Nominal', 'Ordinal', or 'Continuous'."
+      }
+    },
+    "required": ["csv_path", "output_omv_path"]
+  }
+}

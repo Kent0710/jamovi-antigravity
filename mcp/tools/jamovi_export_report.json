@@ -1,0 +1,30 @@
+{
+  "name": "jamovi_export_report",
+  "description": "Generate a standalone, publication-ready HTML report with formatted jamovi tables and APA 7th Edition narrative interpretation.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "Title of the report."
+      },
+      "dataset_name": {
+        "type": "string",
+        "description": "Name or identifier of the analyzed dataset."
+      },
+      "raw_output": {
+        "type": "string",
+        "description": "The ASCII output table returned by the jamovi engine."
+      },
+      "apa_narrative": {
+        "type": "string",
+        "description": "The APA 7th Edition narrative interpretation."
+      },
+      "output_html_path": {
+        "type": "string",
+        "description": "Destination file path for the .html report."
+      }
+    },
+    "required": ["title", "dataset_name", "raw_output", "apa_narrative", "output_html_path"]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "jamovi_open_project",
+  "description": "Open a .omv project or supported dataset in the jamovi Desktop application on screen.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "project_path": {
+        "type": "string",
+        "description": "Path to the .omv file to open."
+      }
+    },
+    "required": ["project_path"]
+  }
+}

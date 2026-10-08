@@ -1,0 +1,15 @@
+student_id,class_format,study_hours,previous_gpa,exam_score
+1,Online,12.5,3.2,78.5
+2,Online,14.0,3.5,84.0
+3,Online,8.0,2.8,62.5
+4,Online,16.5,3.9,91.0
+5,Online,11.0,3.0,74.0
+6,Online,15.0,3.7,86.5
+7,InPerson,9.5,2.9,68.0
+8,InPerson,17.0,3.8,94.5
+9,InPerson,13.5,3.4,81.0
+10,InPerson,7.5,2.6,59.0
+11,InPerson,18.0,4.0,96.0
+12,InPerson,10.5,3.1,72.5
+13,InPerson,16.0,3.8,89.0
+14,InPerson,12.0,3.3,77.5
