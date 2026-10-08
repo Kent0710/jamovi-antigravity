@@ -30,6 +30,11 @@
         "type": "string",
         "description": "Optional file path to save a standalone HTML report."
       },
+      "include_plots": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to automatically generate and embed high-resolution visual plots into the .omv project canvas."
+      },
       "open_in_jamovi": {
         "type": "boolean",
         "default": false,

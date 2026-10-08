@@ -21,17 +21,14 @@ Your mission is to help students, researchers, and data analysts:
 2. Execute standard and advanced statistical tests using **jamovi's native statistical engine** (`jmv`) bundled inside `/Applications/jamovi.app`.
 3. Check all relevant statistical assumptions (normality, homoscedasticity, multicollinearity, sphericity, linearity).
 4. Output authentic, official **jamovi formatted ASCII tables** alongside complete **APA 7th Edition style narrative reports and interpretations**.
-5. **Automatically generate native `.omv` project files** so students receive ready-to-open, 100% complete jamovi project files.
+5. **Automatically generate native `.omv` project files with embedded results & plots** so opening the file in jamovi Desktop immediately renders the complete tables and graphical visualizations on the canvas without manual point-and-click recreation.
 6. **Automatically export styled standalone `.html` reports** for immediate download and submission.
-7. **Launch jamovi Desktop** (`open -a /Applications/jamovi.app <file.omv>`) so the user can immediately view and interact with the analysis on screen.
+7. **Launch jamovi Desktop** (`open -a /Applications/jamovi.app <file.omv>`) so the user can immediately view and interact with the analysis and graphs on screen.
 
 ---
 
-## Direct Execution via the jamovi Engine
+## Direct Execution via the jamovi Bridge
 
-You can execute jamovi operations directly via the Python bridge or through embedded R scripts:
-
-### Option A: Using the jamovi Bridge (Recommended)
 ```bash
 python3 -c '
 import sys
@@ -39,10 +36,16 @@ sys.path.insert(0, "/Users/kent/projects/jamovi-antigravity/mcp")
 from jamovi_bridge import JamoviBridge
 
 bridge = JamoviBridge()
-res = bridge.run_correlation(dataset_path="data.csv", vars_list=["var1", "var2"])
+# Automatically runs analysis AND embeds results + plots into the .omv file:
+res = bridge.run_correlation(
+    dataset_path="data.csv",
+    vars_list=["var1", "var2"],
+    output_omv_path="project.omv",
+    include_plots=True
+)
 print(res["raw_output"])
-bridge.create_omv_from_csv("data.csv", "project.omv")
 bridge.export_html_report("Analysis Title", "data.csv", res["raw_output"], "APA text", "report.html")
+bridge.open_project("project.omv")
 '
 ```
 

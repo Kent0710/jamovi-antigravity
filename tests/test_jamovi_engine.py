@@ -102,6 +102,59 @@ class TestJamoviBridge(unittest.TestCase):
             self.assertIn("Student Performance Analysis", content)
             self.assertIn("APA 7th Edition", content)
 
+    def test_omv_embedded_correlation_analysis_and_plots(self):
+        omv_path = os.path.join(self.test_dir, "test_corr_visualized.omv")
+        res = self.bridge.run_correlation(
+            dataset_path=self.csv_path,
+            vars_list=["study_hours", "exam_score"],
+            output_omv_path=omv_path,
+            include_plots=True
+        )
+        self.assertIsNotNone(res.get("omv_path"))
+        self.assertTrue(os.path.exists(omv_path))
+
+        import zipfile
+        with zipfile.ZipFile(omv_path, "r") as z:
+            names = z.namelist()
+            self.assertIn("01 empty/analysis", names)
+            self.assertIn("02 corrMatrix/analysis", names)
+            self.assertIn("03 empty/analysis", names)
+            
+            # Verify plot resource
+            plot_entries = [n for n in names if n.startswith("02 corrMatrix/resources/") and n.endswith(".png")]
+            self.assertGreater(len(plot_entries), 0)
+            
+            # Verify valid PNG signature
+            png_bytes = z.read(plot_entries[0])
+            self.assertTrue(png_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+            self.assertGreater(len(png_bytes), 5000)
+
+    def test_omv_embedded_ttest_analysis_and_plots(self):
+        omv_path = os.path.join(self.test_dir, "test_ttest_visualized.omv")
+        res = self.bridge.run_independent_ttest(
+            dataset_path=self.csv_path,
+            dep_vars=["exam_score"],
+            group_var="group",
+            output_omv_path=omv_path,
+            include_plots=True
+        )
+        self.assertIsNotNone(res.get("omv_path"))
+        self.assertTrue(os.path.exists(omv_path))
+
+        import zipfile
+        with zipfile.ZipFile(omv_path, "r") as z:
+            names = z.namelist()
+            self.assertIn("01 empty/analysis", names)
+            self.assertIn("02 ttestIS/analysis", names)
+            self.assertIn("03 empty/analysis", names)
+            
+            plot_entries = [n for n in names if n.startswith("02 ttestIS/resources/") and n.endswith(".png")]
+            self.assertGreater(len(plot_entries), 0)
+            
+            png_bytes = z.read(plot_entries[0])
+            self.assertTrue(png_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+            self.assertGreater(len(png_bytes), 1000)
+
 
 if __name__ == "__main__":
     unittest.main()

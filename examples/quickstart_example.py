@@ -25,23 +25,18 @@ def main():
     output_omv = os.path.join(current_dir, "student_grades.omv")
     output_html = os.path.join(current_dir, "student_report.html")
 
-    print("\n1. Running Pearson Correlation (study_hours vs exam_score)...")
+    print("\n1. Running Pearson Correlation and generating .omv with embedded plots...")
     res = bridge.run_correlation(
         dataset_path=csv_path,
         vars_list=["study_hours", "exam_score"],
         pearson=True,
         sig=True,
-        flag=True
+        flag=True,
+        output_omv_path=output_omv,
+        include_plots=True
     )
     print(res["raw_output"])
-
-    print("2. Generating native jamovi .omv file...")
-    bridge.create_omv_from_csv(
-        csv_path=csv_path,
-        output_omv_path=output_omv,
-        col_types={"class_format": "Nominal", "study_hours": "Continuous", "exam_score": "Continuous"}
-    )
-    print(f"Generated: {output_omv}")
+    print(f"Generated .omv with embedded visualizations: {res.get('omv_path')}")
 
     print("3. Exporting standalone HTML report...")
     apa_writeup = (

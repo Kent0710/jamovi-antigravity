@@ -15,6 +15,24 @@
       "column_types": {
         "type": "object",
         "description": "Optional mapping of column name to measurement scale: 'Nominal', 'Ordinal', or 'Continuous'."
+      },
+      "test_type": {
+        "type": "string",
+        "description": "Optional initial analysis to embed: 'correlation', 'ttest_is', 'anova', etc."
+      },
+      "variables": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "Optional variables for embedded initial analysis."
+      },
+      "group_var": {
+        "type": "string",
+        "description": "Optional grouping variable for embedded initial analysis."
+      },
+      "include_plots": {
+        "type": "boolean",
+        "default": true,
+        "description": "Whether to include pre-rendered visual plots."
       }
     },
     "required": ["csv_path", "output_omv_path"]

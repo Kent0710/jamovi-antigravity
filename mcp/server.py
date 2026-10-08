@@ -55,6 +55,11 @@ TOOLS = [
                     "type": "string",
                     "description": "Optional file path to save a standalone HTML report."
                 },
+                "include_plots": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "Whether to automatically generate and embed high-resolution visual plots into the .omv project canvas."
+                },
                 "open_in_jamovi": {
                     "type": "boolean",
                     "default": False,
@@ -66,7 +71,7 @@ TOOLS = [
     },
     {
         "name": "jamovi_create_omv",
-        "description": "Convert a CSV or Excel dataset into a native jamovi (.omv) project file with custom column metadata (measurement levels, factor labels).",
+        "description": "Convert a CSV or Excel dataset into a native jamovi (.omv) project file with custom column metadata (measurement levels, factor labels). Optionally embed initial analyses and visualizations.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -81,6 +86,24 @@ TOOLS = [
                 "column_types": {
                     "type": "object",
                     "description": "Optional mapping of column name to measurement scale: 'Nominal', 'Ordinal', or 'Continuous'."
+                },
+                "test_type": {
+                    "type": "string",
+                    "description": "Optional initial analysis to embed: 'correlation', 'ttest_is', 'anova', etc."
+                },
+                "variables": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Optional variables for embedded initial analysis."
+                },
+                "group_var": {
+                    "type": "string",
+                    "description": "Optional grouping variable for embedded initial analysis."
+                },
+                "include_plots": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "Whether to include pre-rendered visual plots."
                 }
             },
             "required": ["csv_path", "output_omv_path"]
@@ -156,34 +179,35 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             group_var = arguments.get("group_var")
             output_omv = arguments.get("output_omv_path")
             output_html = arguments.get("output_html_path")
+            include_plots = arguments.get("include_plots", True)
             open_jamovi = arguments.get("open_in_jamovi", False)
 
             if test_type == "correlation":
-                res = bridge.run_correlation(dataset_path, variables)
+                res = bridge.run_correlation(dataset_path, variables, output_omv_path=output_omv, include_plots=include_plots)
             elif test_type == "ttest_is":
                 if not group_var:
                     raise ValueError("group_var is required for independent samples t-test")
-                res = bridge.run_independent_ttest(dataset_path, variables, group_var)
+                res = bridge.run_independent_ttest(dataset_path, variables, group_var, output_omv_path=output_omv, include_plots=include_plots)
             elif test_type == "ttest_ps":
                 pairs = [(variables[i], variables[i + 1]) for i in range(0, len(variables) - 1, 2)]
-                res = bridge.run_paired_ttest(dataset_path, pairs)
+                res = bridge.run_paired_ttest(dataset_path, pairs, output_omv_path=output_omv, include_plots=include_plots)
             elif test_type == "anova":
                 if not group_var:
                     raise ValueError("group_var (factor) is required for ANOVA")
-                res = bridge.run_anova(dataset_path, variables[0], [group_var])
+                res = bridge.run_anova(dataset_path, variables[0], [group_var], output_omv_path=output_omv, include_plots=include_plots)
             elif test_type == "regression":
-                res = bridge.run_regression(dataset_path, variables[0], variables[1:])
+                res = bridge.run_regression(dataset_path, variables[0], variables[1:], output_omv_path=output_omv, include_plots=include_plots)
             elif test_type == "descriptives":
-                res = bridge.run_descriptives(dataset_path, variables, split_by=group_var)
-            elif test_type == "contingency":
+                res = bridge.run_descriptives(dataset_path, variables, split_by=group_var, output_omv_path=output_omv, include_plots=include_plots)
+            elif test_type in ["contingency", "contTables"]:
                 if len(variables) < 2:
                     raise ValueError("At least 2 variables (row and column) are required for contingency analysis")
-                res = bridge.run_contingency(dataset_path, variables[0], variables[1])
+                res = bridge.run_contingency(dataset_path, variables[0], variables[1], output_omv_path=output_omv, include_plots=include_plots)
             else:
                 raise ValueError(f"Unknown test type: {test_type}")
 
-            omv_created = None
-            if output_omv:
+            omv_created = res.get("omv_path")
+            if not omv_created and output_omv:
                 omv_created = bridge.create_omv_from_csv(dataset_path, output_omv)
 
             html_created = None
@@ -202,7 +226,7 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
 
             output_text = f"=== JAMOVI OFFICIAL OUTPUT ===\n{res.get('raw_output')}\n"
             if omv_created:
-                output_text += f"\nNative jamovi project created: {omv_created}\n"
+                output_text += f"\nNative jamovi project created with embedded results & plots: {omv_created}\n"
             if html_created:
                 output_text += f"HTML report created: {html_created}\n"
 
@@ -212,7 +236,24 @@ def handle_tool_call(name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
             csv_path = arguments["csv_path"]
             output_omv_path = arguments["output_omv_path"]
             col_types = arguments.get("column_types")
-            result_path = bridge.create_omv_from_csv(csv_path, output_omv_path, col_types)
+            test_type = arguments.get("test_type")
+            
+            if test_type:
+                variables = arguments.get("variables", [])
+                group_var = arguments.get("group_var")
+                include_plots = arguments.get("include_plots", True)
+                result_path = bridge.create_omv_with_analysis(
+                    dataset_path=csv_path,
+                    output_omv_path=output_omv_path,
+                    test_type=test_type,
+                    variables=variables,
+                    group_var=group_var,
+                    col_types=col_types,
+                    include_plots=include_plots
+                )
+            else:
+                result_path = bridge.create_omv_from_csv(csv_path, output_omv_path, col_types)
+                
             return {"content": [{"type": "text", "text": f"Successfully created jamovi project at: {result_path}"}]}
 
         elif name == "jamovi_open_project":

@@ -9,6 +9,7 @@ jamovi-antigravity automates statistical workflows by bridging AI coding agents 
 ## Key Capabilities
 
 * Direct Execution: Runs statistical tests directly through the official jamovi R engine (`jmv`) bundled inside your desktop application.
+* Automatic In-App Visualizations: Automatically embeds pre-rendered statistical tables and high-resolution graphical plots directly into `.omv` project files, so opening the project in jamovi Desktop immediately populates the right-hand canvas without requiring manual clicks.
 * Native Project Generation: Automatically compiles tabular datasets and variable attributes into native `.omv` project files ready for professor submission.
 * Easily Downloadable Reports: Exports self-contained HTML reports featuring official jamovi ASCII tables, charts, and APA 7th Edition narrative interpretations.
 * Desktop App Launching: Directly launches the jamovi Desktop application with the generated project loaded on screen.
@@ -72,25 +73,25 @@ The agent will:
 3. Output the official jamovi ASCII results table.
 4. Provide the full APA 7th Edition interpretation.
 5. Generate clickable download links:
-   * Download Project (.omv): Native project openable in jamovi Desktop.
+   * Download Project (.omv): Native project openable in jamovi Desktop with tables and plots pre-rendered on the canvas.
    * Download Formatted Report (.html): Standalone HTML document.
 6. Launch jamovi Desktop (`open -a /Applications/jamovi.app <file.omv>`) so you can inspect the results immediately.
 
 ---
 
-## Supported Statistical Tests
+## Supported Statistical Tests & In-App Visualizations
 
-| Statistical Procedure | jamovi Engine Function | Key Options |
-| :--- | :--- | :--- |
-| Descriptives | jmv::descriptives | Mean, Median, SD, SE, Skewness, Kurtosis, Shapiro-Wilk |
-| Pearson Correlation | jmv::corrMatrix | Pearson r, p-values, 95% Confidence Intervals, Hypothesis flag |
-| Spearman Correlation | jmv::corrMatrix | Spearman rho, non-parametric rank correlation |
-| Independent Samples T-Test | jmv::ttestIS | Student t, Welch t, Levene test, Cohen d effect size |
-| Paired Samples T-Test | jmv::ttestPS | Student t, Wilcoxon W, Normality checks |
-| One-Way ANOVA | jmv::anovaOneW | Fisher F, Welch F, Homogeneity test, Tukey post-hoc |
-| Factorial ANOVA | jmv::ANOVA | Eta-squared, Partial eta-squared, Estimated marginal means |
-| Linear Regression | jmv::linReg | Model fit, R-squared, VIF collinearity, Durbin-Watson |
-| Contingency Tables | jmv::contingency | Pearson Chi-square, Cramer V, Expected frequencies |
+| Statistical Procedure | jamovi Engine Function | Visualizations Rendered in App | Key Options |
+| :--- | :--- | :--- | :--- |
+| Descriptives | jmv::descriptives | Histograms, density curves, boxplots, violin plots | Mean, Median, SD, SE, Skewness, Kurtosis, Shapiro-Wilk |
+| Pearson Correlation | jmv::corrMatrix | Scatterplot matrix, correlation heatmaps | Pearson r, p-values, 95% Confidence Intervals, Hypothesis flag |
+| Spearman Correlation | jmv::corrMatrix | Non-parametric scatterplots | Spearman rho, non-parametric rank correlation |
+| Independent Samples T-Test | jmv::ttestIS | Group comparison means with 95% CI error bars, Q-Q plots | Student t, Welch t, Levene test, Cohen d effect size |
+| Paired Samples T-Test | jmv::ttestPS | Paired differences error bars, Q-Q normality plots | Student t, Wilcoxon W, Normality checks |
+| One-Way ANOVA | jmv::anovaOneW | Group means with error bars | Fisher F, Welch F, Homogeneity test, Tukey post-hoc |
+| Factorial ANOVA | jmv::ANOVA | Estimated marginal means plots, Q-Q normality plots | Eta-squared, Partial eta-squared, Estimated marginal means |
+| Linear Regression | jmv::linReg | Residuals vs fitted diagnostics, Q-Q normality plots | Model fit, R-squared, VIF collinearity, Durbin-Watson |
+| Contingency Tables | jmv::contTables | Grouped frequency bar plots | Pearson Chi-square, Cramer V, Expected frequencies |
 
 ---
 
