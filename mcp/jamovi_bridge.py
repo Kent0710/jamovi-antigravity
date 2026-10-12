@@ -344,31 +344,46 @@ opts_list <- list(
                 covs_r = ", ".join([f'"{c}"' for c in covs])
                 collin = opts.get("collin", True)
                 durbin = opts.get("durbin", True)
+                norm = opts.get("norm", True)
+                model_test = opts.get("model_test", True)
+                r2_adj = opts.get("r2_adj", True)
+                std_est = opts.get("std_est", True)
+                ci = opts.get("ci", True)
                 jmv_call = f"""
 res <- jmv::linReg(
     data = df,
     dep = "{dep_var}",
     covs = c({covs_r}),
-    r2Adj = TRUE,
-    stdEst = TRUE,
-    ci = TRUE,
+    blocks = list(list({covs_r})),
+    r2Adj = {str(r2_adj).upper()},
+    modelTest = {str(model_test).upper()},
+    stdEst = {str(std_est).upper()},
+    ci = {str(ci).upper()},
+    norm = {str(norm).upper()},
     collin = {str(collin).upper()},
     durbin = {str(durbin).upper()},
     qqPlot = {str(include_plots).upper()},
-    resPlots = {str(include_plots).upper()}
+    resPlots = {str(include_plots).upper()},
+    emMeans = list(c({covs_r})),
+    emmPlots = {str(include_plots).upper()}
 )
 """
                 opts_list_r = f"""
 opts_list <- list(
     dep = "{dep_var}",
     covs = c({covs_r}),
-    r2Adj = TRUE,
-    stdEst = TRUE,
-    ci = TRUE,
+    blocks = list(list({covs_r})),
+    r2Adj = {str(r2_adj).upper()},
+    modelTest = {str(model_test).upper()},
+    stdEst = {str(std_est).upper()},
+    ci = {str(ci).upper()},
+    norm = {str(norm).upper()},
     collin = {str(collin).upper()},
     durbin = {str(durbin).upper()},
     qqPlot = {str(include_plots).upper()},
-    resPlots = {str(include_plots).upper()}
+    resPlots = {str(include_plots).upper()},
+    emMeans = list(c({covs_r})),
+    emmPlots = {str(include_plots).upper()}
 )
 """
 
@@ -962,8 +977,11 @@ print(res)
         factors: Optional[List[str]] = None,
         collin: bool = True,
         durbin: bool = True,
+        norm: bool = True,
+        model_test: bool = True,
         output_omv_path: Optional[str] = None,
-        include_plots: bool = True
+        include_plots: bool = True,
+        plot_image_path: Optional[str] = None
     ) -> Dict[str, Any]:
         dataset_path_abs = os.path.abspath(dataset_path)
         covs_r = ", ".join([f'"{c}"' for c in covs])
@@ -973,6 +991,33 @@ print(res)
             factors_r = ", ".join([f'"{f}"' for f in factors])
             factors_param = f'factors = c({factors_r}),'
             factors_prep = f'for (f in c({factors_r})) {{ df[[f]] <- as.factor(df[[f]]) }};'
+
+        plot_code = ""
+        plot_path_abs = None
+        if plot_image_path:
+            plot_path_abs = os.path.abspath(plot_image_path)
+            os.makedirs(os.path.dirname(plot_path_abs), exist_ok=True)
+            first_cov = covs[0]
+            plot_code = f"""
+tryCatch({{
+    png("{plot_path_abs}", width = 800, height = 600, res = 120)
+    par(mar = c(4.5, 4.5, 3, 1.5), bg = "#ffffff")
+    fit <- lm(df[["{dep_var}"]] ~ df[["{first_cov}"]])
+    newx <- seq(min(df[["{first_cov}"]], na.rm = TRUE), max(df[["{first_cov}"]], na.rm = TRUE), length.out = 100)
+    preds <- predict(fit, newdata = setNames(data.frame(newx), "{first_cov}"), interval = "confidence")
+
+    plot(df[["{first_cov}"]], df[["{dep_var}"]], type = "n",
+         xlab = "{first_cov}", ylab = "{dep_var}",
+         main = "Linear Regression: {dep_var} predicted by {first_cov}",
+         font.main = 1, cex.lab = 1.1, cex.axis = 0.95)
+    grid(col = "#e9ecef", lty = 1)
+    polygon(c(rev(newx), newx), c(rev(preds[, 3]), preds[, 2]),
+            col = rgb(52/255, 152/255, 219/255, 0.2), border = NA)
+    lines(newx, preds[, 1], col = "#2980b9", lwd = 2.5)
+    points(df[["{first_cov}"]], df[["{dep_var}"]], pch = 21, bg = "#3498db", col = "#1a5276", cex = 1.4, lwd = 1.5)
+    dev.off()
+}}, error = function(e) {{}})
+"""
 
         r_code = f"""
 if (endsWith(tolower("{dataset_path_abs}"), ".omv")) {{
@@ -988,14 +1033,19 @@ res <- jmv::linReg(
     dep = "{dep_var}",
     covs = c({covs_r}),
     {factors_param}
+    blocks = list(list({covs_r})),
     r2Adj = TRUE,
+    modelTest = {str(model_test).upper()},
     stdEst = TRUE,
     ci = TRUE,
+    norm = {str(norm).upper()},
     collin = {str(collin).upper()},
     durbin = {str(durbin).upper()}
 )
 
 print(res)
+
+{plot_code}
 """
         code, stdout, stderr = self.run_r(r_code)
         if code != 0:
@@ -1010,7 +1060,9 @@ print(res)
                 variables=[dep_var] + covs,
                 options={
                     "collin": collin,
-                    "durbin": durbin
+                    "durbin": durbin,
+                    "norm": norm,
+                    "model_test": model_test
                 },
                 include_plots=include_plots
             )
@@ -1020,7 +1072,8 @@ print(res)
             "dependent_variable": dep_var,
             "covariates": covs,
             "test": "Linear Regression",
-            "omv_path": omv_path
+            "omv_path": omv_path,
+            "plot_path": plot_path_abs if plot_path_abs and os.path.exists(plot_path_abs) else None
         }
 
     def run_contingency(
@@ -1079,12 +1132,24 @@ print(res)
             "omv_path": omv_path
         }
 
-    def export_html_report(self, title: str, dataset_name: str, raw_output: str, apa_narrative: str, output_html_path: str) -> str:
+    def export_html_report(self, title: str, dataset_name: str, raw_output: str, apa_narrative: str, output_html_path: str, plot_image_path: Optional[str] = None) -> str:
         """
         Creates a clean, styled standalone HTML report of the jamovi results.
         """
         output_abs = os.path.abspath(output_html_path)
         os.makedirs(os.path.dirname(output_abs), exist_ok=True)
+
+        plot_html = ""
+        if plot_image_path and os.path.exists(plot_image_path):
+            import base64
+            with open(plot_image_path, "rb") as pf:
+                b64 = base64.b64encode(pf.read()).decode("utf-8")
+            plot_html = f"""
+        <h2>Model Visualization</h2>
+        <div style="text-align: center; margin: 20px 0;">
+            <img src="data:image/png;base64,{b64}" style="max-width: 100%; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="Model Plot" />
+        </div>
+"""
 
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -1170,7 +1235,7 @@ print(res)
 
         <h2>Official jamovi Results</h2>
         <pre class="jamovi-output">{raw_output}</pre>
-
+{plot_html}
         <h2>APA 7th Edition Write-Up & Interpretation</h2>
         <div class="apa-card">
             {apa_narrative.replace(chr(10), '<br>')}

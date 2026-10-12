@@ -155,6 +155,36 @@ class TestJamoviBridge(unittest.TestCase):
             self.assertTrue(png_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
             self.assertGreater(len(png_bytes), 1000)
 
+    def test_omv_embedded_regression_analysis_and_plots(self):
+        omv_path = os.path.join(self.test_dir, "test_regression_visualized.omv")
+        plot_path = os.path.join(self.test_dir, "test_regression_plot.png")
+        res = self.bridge.run_regression(
+            dataset_path=self.csv_path,
+            dep_var="exam_score",
+            covs=["study_hours"],
+            output_omv_path=omv_path,
+            include_plots=True,
+            plot_image_path=plot_path
+        )
+        self.assertIsNotNone(res.get("omv_path"))
+        self.assertTrue(os.path.exists(omv_path))
+        self.assertIsNotNone(res.get("plot_path"))
+        self.assertTrue(os.path.exists(plot_path))
+
+        import zipfile
+        with zipfile.ZipFile(omv_path, "r") as z:
+            names = z.namelist()
+            self.assertIn("01 empty/analysis", names)
+            self.assertIn("02 linReg/analysis", names)
+            self.assertIn("03 empty/analysis", names)
+            
+            plot_entries = [n for n in names if n.startswith("02 linReg/resources/") and n.endswith(".png")]
+            self.assertGreater(len(plot_entries), 0)
+            
+            png_bytes = z.read(plot_entries[0])
+            self.assertTrue(png_bytes.startswith(b"\x89PNG\r\n\x1a\n"))
+            self.assertGreater(len(png_bytes), 1000)
+
 
 if __name__ == "__main__":
     unittest.main()
