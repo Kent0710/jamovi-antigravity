@@ -1,13 +1,14 @@
 # ==============================================================================
 # jamovi-antigravity Installer for Windows (PowerShell)
-# One-click setup script for Windows.
-# Configures the jamovi MCP server and the jamovi-analyst Antigravity agent.
+# A lightweight, one install and uninstall MCP setup connecting Google Antigravity to Jamovi Desktop.
 # ==============================================================================
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "------------------------------------------------------------"
 Write-Host "jamovi-antigravity: Windows One-Click Setup"
+Write-Host "A lightweight, one install and uninstall MCP setup connecting"
+Write-Host "Google Antigravity to Jamovi Desktop."
 Write-Host "------------------------------------------------------------"
 
 # 1. OS & Path Detection

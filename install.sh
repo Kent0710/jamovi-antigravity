@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # jamovi-antigravity Installer
-# One-click setup script for macOS and Linux.
-# Configures the jamovi MCP server and the jamovi-analyst Antigravity agent.
+# A lightweight, one install and uninstall MCP setup connecting Google Antigravity to Jamovi Desktop.
 # ==============================================================================
 
 set -e
@@ -18,6 +17,8 @@ done
 
 echo "------------------------------------------------------------"
 echo "jamovi-antigravity: One-Click Setup"
+echo "A lightweight, one install and uninstall MCP setup connecting"
+echo "Google Antigravity to Jamovi Desktop."
 echo "------------------------------------------------------------"
 
 # 1. OS Detection

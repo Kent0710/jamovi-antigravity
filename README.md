@@ -1,6 +1,6 @@
 # jamovi-antigravity
 
-Model Context Protocol (MCP) server and agent integration connecting Google Antigravity to jamovi Desktop.
+A lightweight, one install and uninstall MCP setup connecting Google Antigravity to Jamovi Desktop.
 
 jamovi-antigravity automates statistical workflows by bridging AI coding agents directly to the official jamovi statistical engine (`jmv`). It enables hands-free dataset ingestion, rigorous hypothesis testing, APA 7th Edition reporting, native `.omv` project file generation, and live desktop application launching.
 
@@ -137,9 +137,9 @@ python3 tests/test_jamovi_engine.py
 
 ---
 
-## Uninstallation (One-Command Teardown)
+## One-Click Uninstallation
 
-To completely remove every file, MCP tool, agent definition, and configuration created by this setup:
+To completely remove every file, MCP tool, agent definition, scratch artifact, and configuration created by this setup in a single step:
 
 ### macOS and Linux
 
