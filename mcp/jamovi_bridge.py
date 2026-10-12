@@ -15,9 +15,9 @@ from typing import Dict, List, Optional, Tuple, Any
 
 
 class JamoviBridge:
-    def __init__(self):
+    def __init__(self, app_path: Optional[str] = None):
         self.os_type = platform.system()
-        self.app_path = None
+        self.app_path = app_path or os.environ.get("JAMOVI_HOME") or os.environ.get("JAMOVI_PATH")
         self.r_home = None
         self.r_bin = None
         self.lib_paths = []
@@ -26,20 +26,46 @@ class JamoviBridge:
 
     def _detect_environment(self):
         if self.os_type == "Darwin":  # macOS
-            possible_apps = [
-                "/Applications/jamovi.app",
-                os.path.expanduser("~/Applications/jamovi.app")
-            ]
-            for app in possible_apps:
-                if os.path.isdir(app):
-                    self.app_path = app
-                    break
+            if not self.app_path or not os.path.isdir(self.app_path):
+                candidates = [
+                    "/Applications/jamovi.app",
+                    os.path.expanduser("~/Applications/jamovi.app"),
+                    "/Applications/Utilities/jamovi.app"
+                ]
+                # Check Homebrew Cask directories
+                candidates.extend(glob.glob("/opt/homebrew/Caskroom/jamovi/*/*.app"))
+                candidates.extend(glob.glob("/usr/local/Caskroom/jamovi/*/*.app"))
+
+                for app in candidates:
+                    if os.path.isdir(app):
+                        self.app_path = app
+                        break
+
+                # Spotlight search fallback
+                if not self.app_path and shutil.which("mdfind"):
+                    try:
+                        res = subprocess.run(
+                            ["mdfind", "kMDItemCFBundleIdentifier == \"org.jamovi.jamovi\""],
+                            capture_output=True, text=True, timeout=5
+                        )
+                        paths = [p.strip() for p in res.stdout.splitlines() if p.strip() and os.path.isdir(p.strip())]
+                        if paths:
+                            self.app_path = paths[0]
+                        else:
+                            res2 = subprocess.run(
+                                ["mdfind", "kMDItemFSName == \"jamovi.app\""],
+                                capture_output=True, text=True, timeout=5
+                            )
+                            paths2 = [p.strip() for p in res2.stdout.splitlines() if p.strip() and os.path.isdir(p.strip())]
+                            if paths2:
+                                self.app_path = paths2[0]
+                    except Exception:
+                        pass
 
             if self.app_path:
                 versions = glob.glob(f"{self.app_path}/Contents/Frameworks/R.framework/Versions/*")
                 versions = [v for v in versions if os.path.basename(v) != "Current"]
                 if versions:
-                    # Prefer arm64 or latest version
                     versions.sort(reverse=True)
                     self.r_home = os.path.join(versions[0], "Resources")
                     self.r_bin = os.path.join(self.r_home, "bin", "R")
@@ -51,19 +77,101 @@ class JamoviBridge:
                         os.path.join(modules_dir, "base", "R"),
                         modules_dir
                     ]
-                
+
                 proto_candidate = os.path.join(self.app_path, "Contents", "Resources", "modules", "base", "R", "jmvcore", "jamovi.proto")
                 if os.path.exists(proto_candidate):
                     self.proto_path = proto_candidate
 
         elif self.os_type == "Windows":
-            program_files = [os.environ.get("ProgramFiles", "C:\\Program Files")]
             found_dirs = []
-            for pf in program_files:
-                matches = glob.glob(os.path.join(pf, "jamovi*"))
-                found_dirs.extend(matches)
-            if found_dirs:
-                self.app_path = sorted(found_dirs, reverse=True)[0]
+
+            # 1. Custom app path
+            if self.app_path and os.path.isdir(self.app_path):
+                found_dirs.append(self.app_path)
+
+            # 2. Windows Registry lookup
+            try:
+                import winreg
+                for root in (winreg.HKEY_LOCAL_MACHINE, winreg.HKEY_CURRENT_USER):
+                    try:
+                        with winreg.OpenKey(root, r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\jamovi.exe") as key:
+                            val, _ = winreg.QueryValueEx(key, "")
+                            if val and os.path.exists(val):
+                                app_dir = os.path.dirname(val)
+                                if os.path.basename(app_dir).lower() == "bin":
+                                    app_dir = os.path.dirname(app_dir)
+                                if os.path.isdir(app_dir):
+                                    found_dirs.append(app_dir)
+                    except OSError:
+                        pass
+
+                    try:
+                        with winreg.OpenKey(root, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall") as uninst_key:
+                            for idx in range(winreg.QueryInfoKey(uninst_key)[0]):
+                                try:
+                                    sub_name = winreg.EnumKey(uninst_key, idx)
+                                    with winreg.OpenKey(uninst_key, sub_name) as sub_key:
+                                        disp_name, _ = winreg.QueryValueEx(sub_key, "DisplayName")
+                                        if "jamovi" in str(disp_name).lower():
+                                            loc, _ = winreg.QueryValueEx(sub_key, "InstallLocation")
+                                            if loc and os.path.isdir(loc):
+                                                found_dirs.append(loc)
+                                except (OSError, ValueError):
+                                    pass
+                    except OSError:
+                        pass
+            except ImportError:
+                pass
+
+            # 3. System PATH lookup
+            which_jamovi = shutil.which("jamovi") or shutil.which("jamovi.exe")
+            if which_jamovi:
+                try:
+                    app_dir = os.path.dirname(os.path.realpath(which_jamovi))
+                    if os.path.basename(app_dir).lower() == "bin":
+                        app_dir = os.path.dirname(app_dir)
+                    if os.path.isdir(app_dir):
+                        found_dirs.append(app_dir)
+                except Exception:
+                    pass
+
+            # 4. Standard directory patterns across all environment roots
+            search_roots = []
+            for env_var in ["ProgramFiles", "ProgramFiles(x86)", "ProgramW6432", "LOCALAPPDATA", "APPDATA"]:
+                val = os.environ.get(env_var)
+                if val and os.path.isdir(val):
+                    search_roots.append(val)
+                    if env_var == "LOCALAPPDATA":
+                        prog_sub = os.path.join(val, "Programs")
+                        if os.path.isdir(prog_sub):
+                            search_roots.append(prog_sub)
+
+            # Check drive roots (e.g. C:\jamovi*, D:\jamovi*)
+            for drive in ["C:", "D:", "E:"]:
+                drive_root = drive + "\\"
+                if os.path.exists(drive_root):
+                    search_roots.append(drive_root)
+                    for pf in ["Program Files", "Program Files (x86)"]:
+                        pf_path = os.path.join(drive_root, pf)
+                        if os.path.isdir(pf_path):
+                            search_roots.append(pf_path)
+
+            for root in search_roots:
+                try:
+                    matches = glob.glob(os.path.join(root, "jamovi*"))
+                    found_dirs.extend([m for m in matches if os.path.isdir(m)])
+                except Exception:
+                    pass
+
+            # Deduplicate preserving order
+            unique_dirs = []
+            for d in found_dirs:
+                norm = os.path.normpath(d)
+                if norm not in unique_dirs and os.path.isdir(norm):
+                    unique_dirs.append(norm)
+
+            if unique_dirs:
+                self.app_path = unique_dirs[0]
                 self.r_bin = os.path.join(self.app_path, "bin", "R.exe")
                 self.r_home = self.app_path
                 modules_dir = os.path.join(self.app_path, "modules")
@@ -78,15 +186,51 @@ class JamoviBridge:
                     self.proto_path = proto_candidate
 
         elif self.os_type == "Linux":
-            candidates = ["/usr/lib/jamovi", "/opt/jamovi"]
+            found_dirs = []
+
+            # 1. Custom app path
+            if self.app_path and os.path.isdir(self.app_path):
+                found_dirs.append(self.app_path)
+
+            # 2. System PATH lookup
+            which_jamovi = shutil.which("jamovi")
+            if which_jamovi:
+                try:
+                    real_path = os.path.realpath(which_jamovi)
+                    app_dir = os.path.dirname(real_path)
+                    if os.path.basename(app_dir).lower() == "bin":
+                        app_dir = os.path.dirname(app_dir)
+                    if os.path.isdir(app_dir):
+                        found_dirs.append(app_dir)
+                except Exception:
+                    pass
+
+            # 3. Standard Linux directory candidates
+            candidates = [
+                "/usr/lib/jamovi",
+                "/usr/local/lib/jamovi",
+                "/opt/jamovi",
+                "/usr/share/jamovi",
+                os.path.expanduser("~/.local/lib/jamovi"),
+                os.path.expanduser("~/.local/share/jamovi"),
+                "/snap/jamovi/current",
+                "/var/lib/snapd/snap/jamovi/current"
+            ]
             for cand in candidates:
-                if os.path.isdir(cand):
-                    self.app_path = cand
-                    break
+                if os.path.isdir(cand) and cand not in found_dirs:
+                    found_dirs.append(cand)
+
+            if found_dirs:
+                self.app_path = found_dirs[0]
+
+            # 4. Flatpak fallback
             if not self.app_path and shutil.which("flatpak"):
-                res = subprocess.run(["flatpak", "info", "org.jamovi.jamovi"], capture_output=True, text=True)
-                if res.returncode == 0:
-                    self.app_path = "flatpak:org.jamovi.jamovi"
+                try:
+                    res = subprocess.run(["flatpak", "info", "org.jamovi.jamovi"], capture_output=True, text=True)
+                    if res.returncode == 0:
+                        self.app_path = "flatpak:org.jamovi.jamovi"
+                except Exception:
+                    pass
 
             if self.app_path and not self.app_path.startswith("flatpak"):
                 self.r_bin = os.path.join(self.app_path, "bin", "R")
